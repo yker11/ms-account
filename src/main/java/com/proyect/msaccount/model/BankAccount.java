@@ -33,4 +33,6 @@ public class BankAccount {
 
     private Integer movements;
 
+    private String idClient;
+
 }
