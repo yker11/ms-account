@@ -6,24 +6,41 @@ import com.proyect.msaccount.repository.IBankAccountRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import javax.annotation.PostConstruct;
 import java.util.Date;
 import java.util.Optional;
 
 @Slf4j
-@RequiredArgsConstructor
 @Service
 public class BankAccountServiceImpl implements IBankAccountService{
+
+    public static final String HASH_KEY = "BankAccount";
+    WebClient webClientCustomer;
 
     @Autowired
     IBankAccountRepository bankAccountRepository;
 
-    private final WebClient webClientCustomer;
+    @Autowired
+    private RedisTemplate<String, BankAccount> redisTemplate;
+    private HashOperations hashOperations;
+
+    public BankAccountServiceImpl(RedisTemplate<String, BankAccount> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
+    @PostConstruct
+    private void init() {
+        hashOperations = redisTemplate.opsForHash();
+    }
+
     String uri = "http://localhost:8090/api";
 
     public BankAccountServiceImpl() {
@@ -40,7 +57,10 @@ public class BankAccountServiceImpl implements IBankAccountService{
 
     @Override
     public Mono<BankAccount> create(BankAccount bankAccount) {
-        return bankAccountRepository.save(bankAccount)
+        return webClientCustomer.get().uri(this.uri + "/ms-customer/{id}", bankAccount.getIdClient())
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(Customer.class)
                 .flatMap(cust -> {
                     BankAccount ba = new BankAccount();
                     ba.setCustomer(bankAccount.getCustomer());
@@ -62,6 +82,10 @@ public class BankAccountServiceImpl implements IBankAccountService{
     @Override
     public Mono<BankAccount> findById(String id) {
         return bankAccountRepository.findById(id);
+    }
+
+    public BankAccount findBankAccountById(int id) {
+        return (BankAccount) hashOperations.get(HASH_KEY, id);
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.proyect.msaccount.model.Customer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface IBankAccountService {
@@ -16,6 +17,8 @@ public interface IBankAccountService {
     public Flux<BankAccount> findAll();
 
     public Mono<BankAccount> findById(String id);
+
+    public BankAccount findBankAccountById(int id);
 
     public Mono<BankAccount> update(BankAccount bankAccount);
 
